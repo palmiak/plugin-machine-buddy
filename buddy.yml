@@ -1,0 +1,203 @@
+- pipeline: "Unit Tests"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fetch_all_refs: true
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Run unit tests"
+    type: "BUILD"
+    docker_image_name: "library/php"
+    docker_image_tag: "7.4"
+    execute_commands:
+    - "composer install"
+    - "composer test:unit"
+    setup_commands:
+    - "echo \"memory_limit=-1\" >> /usr/local/etc/php/conf.d/buddy.ini"
+    - "apt-get update && apt-get install -y git zip"
+    - "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer"
+    - "# php ext gd"
+    - "apt-get install -y libfreetype6-dev"
+    - "apt-get install -y libjpeg62-turbo-dev"
+    - "apt-get install -y libpng-dev"
+    - "docker-php-ext-configure gd --with-freetype --with-jpeg"
+    - "docker-php-ext-install gd"
+    - "# php ext zip"
+    - "apt-get install -y zip"
+    - "apt-get install -y unzip"
+    - "apt-get install -y zlib1g-dev"
+    - "apt-get install -y libzip-dev"
+    - "docker-php-ext-install zip"
+    - "# php ext pdo_mysql"
+    - "docker-php-ext-configure pdo_mysql --with-pdo-mysql"
+    - "docker-php-ext-install pdo_mysql"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "Integration tests"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fetch_all_refs: true
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Run integration tests"
+    type: "BUILD"
+    docker_image_name: "library/wordpress"
+    docker_image_tag: "latest"
+    execute_commands:
+    - "chmod +x ./bin/*.sh"
+    - "./bin/install-wp-tests.sh wp_test root root mysql latest true"
+    - ""
+    - "composer install"
+    - "composer test:wordpress"
+    - ""
+    setup_commands:
+    - "echo \"memory_limit=-1\" >> /usr/local/etc/php/conf.d/buddy.ini"
+    - "apt-get update && apt-get install -y git zip"
+    - "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer"
+    - "# php ext gd"
+    - "apt-get install -y libfreetype6-dev"
+    - "apt-get install -y libjpeg62-turbo-dev"
+    - "apt-get install -y libpng-dev"
+    - "docker-php-ext-configure gd --with-freetype --with-jpeg"
+    - "docker-php-ext-install gd"
+    - "# php ext zip"
+    - "apt-get install -y zip"
+    - "apt-get install -y unzip"
+    - "apt-get install -y zlib1g-dev"
+    - "apt-get install -y libzip-dev"
+    - "docker-php-ext-install zip"
+    - "# php ext pdo_mysql"
+    - "docker-php-ext-configure pdo_mysql --with-pdo-mysql"
+    - "docker-php-ext-install pdo_mysql"
+    - ""
+    - "apt-get install -y subversion"
+    - ""
+    services:
+    - type: "MYSQL"
+      version: "5.7"
+      connection:
+        host: "mysql"
+        port: 3306
+        user: "root"
+        password: "root"
+        db: "wp_test"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "Sniffs"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fetch_all_refs: true
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Run PHPCS"
+    type: "BUILD"
+    docker_image_name: "library/php"
+    docker_image_tag: "7.4"
+    execute_commands:
+    - "composer install"
+    - "composer run sniffs"
+    setup_commands:
+    - "echo \"memory_limit=-1\" >> /usr/local/etc/php/conf.d/buddy.ini"
+    - "apt-get update && apt-get install -y git zip"
+    - "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer"
+    - "# php ext gd"
+    - "apt-get install -y libfreetype6-dev"
+    - "apt-get install -y libjpeg62-turbo-dev"
+    - "apt-get install -y libpng-dev"
+    - "docker-php-ext-configure gd --with-freetype --with-jpeg"
+    - "docker-php-ext-install gd"
+    - "# php ext zip"
+    - "apt-get install -y zip"
+    - "apt-get install -y unzip"
+    - "apt-get install -y zlib1g-dev"
+    - "apt-get install -y libzip-dev"
+    - "docker-php-ext-install zip"
+    - "# php ext pdo_mysql"
+    - "docker-php-ext-configure pdo_mysql --with-pdo-mysql"
+    - "docker-php-ext-install pdo_mysql"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "JS Unit tests"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fetch_all_refs: true
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Run Jest Tests"
+    type: "BUILD"
+    docker_image_name: "library/node"
+    docker_image_tag: "12"
+    execute_commands:
+    - "npm install"
+    - "npm run test:ci"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "CSS Lint"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Lint CSS"
+    type: "BUILD"
+    docker_image_name: "library/node"
+    docker_image_tag: "12"
+    execute_commands:
+    - "npm install"
+    - "npm link:css"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "JS Lint"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Execute: npm run lint:js"
+    type: "BUILD"
+    docker_image_name: "library/node"
+    docker_image_tag: "12"
+    execute_commands:
+    - "npm install"
+    - "npm run lint:js"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
+- pipeline: "Build assets"
+  on: "CLICK"
+  refs:
+  - "refs/heads/master"
+  priority: "NORMAL"
+  fail_on_prepare_env_warning: true
+  actions:
+  - action: "Execute: npm run build"
+    type: "BUILD"
+    docker_image_name: "library/node"
+    docker_image_tag: "12"
+    execute_commands:
+    - "npm install"
+    - "npm run build"
+    volume_mappings:
+    - "/:/buddy/plugin-machine-test"
+    cache_base_image: true
+    shell: "BASH"
